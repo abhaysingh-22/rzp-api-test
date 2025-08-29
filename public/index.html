@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Razorpay Test (₹1)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; display:flex; min-height:100svh; align-items:center; justify-content:center; background:#f7f7f8; }
+    .card { background:white; padding:24px; border-radius:16px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); width: 360px; }
+    button { width:100%; padding:12px 16px; border:none; border-radius:12px; font-size:16px; cursor:pointer; }
+    .pay { background:#111827; color:white; }
+    .log { margin-top:12px; font-size:14px; color:#374151; white-space:pre-wrap; background:#f3f4f6; padding:10px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Razorpay Test Payment</h2>
+    <p>Amount: <strong>₹1</strong></p>
+    <button id="payBtn" class="pay">Pay ₹1</button>
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const log = (msg) => (logEl.textContent = String(msg));
+
+    document.getElementById("payBtn").addEventListener("click", async () => {
+      log("Creating order...");
+      try {
+        const res = await fetch("/create-order", { method: "POST" });
+        const data = await res.json();
+
+        if (!data.success) {
+          log("Order create failed: " + (data.message || "Unknown error"));
+          return;
+        }
+
+        const { key, order } = data;
+
+        const options = {
+          key,
+          amount: order.amount,
+          currency: order.currency,
+          name: "Test Payment",
+          description: "Razorpay sandbox test",
+          order_id: order.id, // IMPORTANT
+          handler: function (response) {
+            // Payment successful (mock)
+            alert("Payment Success!\nPayment ID: " + response.razorpay_payment_id + "\nOrder ID: " + response.razorpay_order_id);
+            log("Success ✅\n" + JSON.stringify(response, null, 2));
+          },
+          prefill: {
+            name: "Abhay Tester",
+            email: "test@example.com",
+            contact: "9876543210",
+          },
+          theme: { color: "#111827" },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.on("payment.failed", function (resp) {
+          alert("Payment Failed ❌");
+          log("Failed ❌\n" + JSON.stringify(resp.error, null, 2));
+        });
+        rzp.open();
+        log("Checkout opened…");
+      } catch (e) {
+        console.error(e);
+        log("Error: " + e.message);
+      }
+    });
+  </script>
+</body>
+</html>
